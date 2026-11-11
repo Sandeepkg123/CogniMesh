@@ -1,4 +1,4 @@
-# CortexAI Frontend
+# CogniMesh Frontend
 
 React + Vite chat UI with Firebase Google sign-in, Redux Toolkit state, Monaco code preview, and Razorpay billing.
 

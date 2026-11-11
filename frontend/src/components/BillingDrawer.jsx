@@ -14,7 +14,7 @@ function BillingDrawer({ open, onClose }) {
                 key: import.meta.env.VITE_RAZORPAY_KEY_ID,
                 amount: data?.order?.amount,
                 currency: data?.order?.currency,
-                name: "CortexAI",
+                name: "CogniMesh",
                 description: `${data?.plan?.name} Plan`,
                 order_id: data?.order?.id,
                 handler: async (response) => {
