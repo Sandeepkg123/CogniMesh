@@ -65,3 +65,4 @@ serviceAccountKey.json
 # =========================
 .cache/
 tmp/
+temp/
