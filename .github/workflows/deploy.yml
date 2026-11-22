@@ -22,6 +22,8 @@ jobs:
   build-backend:
     name: Build ${{ matrix.service }}
     runs-on: ubuntu-latest
+    env:
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
     strategy:
       fail-fast: false
       matrix:
@@ -39,11 +41,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: azure/login@v2
+      - name: Login to Azure with OIDC
+        if: ${{ env.AZURE_CLIENT_SECRET == '' }}
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure with service principal secret
+        if: ${{ env.AZURE_CLIENT_SECRET != '' }}
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
 
       - name: Login to ACR
         run: az acr login --name "$ACR_NAME"
@@ -65,14 +81,30 @@ jobs:
   build-frontend:
     name: Build frontend
     runs-on: ubuntu-latest
+    env:
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: azure/login@v2
+      - name: Login to Azure with OIDC
+        if: ${{ env.AZURE_CLIENT_SECRET == '' }}
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure with service principal secret
+        if: ${{ env.AZURE_CLIENT_SECRET != '' }}
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
 
       - name: Login to ACR
         run: az acr login --name "$ACR_NAME"
@@ -97,15 +129,31 @@ jobs:
   deploy:
     name: Update Container Apps
     runs-on: ubuntu-latest
+    env:
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
     needs:
       - build-backend
       - build-frontend
     steps:
-      - uses: azure/login@v2
+      - name: Login to Azure with OIDC
+        if: ${{ env.AZURE_CLIENT_SECRET == '' }}
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure with service principal secret
+        if: ${{ env.AZURE_CLIENT_SECRET != '' }}
+        uses: azure/login@v2
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
 
       - name: Update backend apps
         shell: bash
