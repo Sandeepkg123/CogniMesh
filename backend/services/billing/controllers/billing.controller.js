@@ -1,26 +1,27 @@
+import crypto from "node:crypto"
 import axios from "axios"
 import { PLANS } from "../config/Plans.js"
 import razorpay from "../config/razorpay.js"
 import Payment from "../models/payment.model.js"
-import crypto from "crypto"
+import { internalHeaders } from "../../../shared/internalAuth.js"
+
 export const createOrder = async (req, res) => {
     try {
-        const { plan } = req.body
-        const userId = req.headers["x-user-id"]
+        const { plan } = req.body || {}
         const selectedPlan = PLANS[plan]
 
-        if (!selectedPlan) {
-            return res.status(404).json({ message: "plan not found" })
+        if (!selectedPlan || selectedPlan.amount <= 0) {
+            return res.status(400).json({ message: "invalid plan" })
         }
 
         const order = await razorpay.orders.create({
             amount: selectedPlan.amount * 100,
             currency: "INR",
-            receipt: `receipt-${Date.now()}`
+            receipt: `receipt-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`
         })
 
         await Payment.create({
-            userId,
+            userId: req.userId,
             orderId: order.id,
             amount: selectedPlan.amount,
             credits: selectedPlan.credits,
@@ -30,44 +31,167 @@ export const createOrder = async (req, res) => {
         })
 
         return res.status(200).json({ order, plan: selectedPlan })
-
-
-
     } catch (error) {
-        return res.status(500).json({ message: `create order error ${error}` })
+        console.error("create order error", error.message)
+        return res.status(500).json({ message: "failed to create order" })
     }
 }
 
-
-export const verifyPayment = async (req,res) => {
+export const verifyPayment = async (req, res) => {
     try {
-        const {razorpay_order_id, razorpay_payment_id,razorpay_signature} = req.body
+        const {
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature
+        } = req.body || {}
 
-        const generateSignature=crypto
-                               .createHmac("sha256",process.env.RAZORPAY_KEY_SECRET)
-                               .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-                               .digest("hex")
+        if (
+            typeof razorpay_order_id !== "string" ||
+            typeof razorpay_payment_id !== "string" ||
+            typeof razorpay_signature !== "string"
+        ) {
+            return res.status(400).json({ message: "invalid payment payload" })
+        }
 
- if(generateSignature !== razorpay_signature){
-    return res.status(400).json({message:"Payment Verification Failed"})
- }
+        const expectedSignature = crypto
+            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+            .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+            .digest()
 
- const payment=await Payment.findOne({orderId:razorpay_order_id})
+        const providedSignature = Buffer.from(razorpay_signature, "hex")
 
- if(!payment){
-    return res.status(404).json({message:"Payment Not Found"})
- }
+        if (
+            providedSignature.length !== expectedSignature.length ||
+            !crypto.timingSafeEqual(expectedSignature, providedSignature)
+        ) {
+            return res.status(400).json({ message: "payment verification failed" })
+        }
 
- payment.status="paid"
- payment.paymentId=razorpay_payment_id
- await payment.save()
+        const payment = await Payment.findOne({
+            orderId: razorpay_order_id,
+            userId: req.userId
+        })
 
- const {data}=await axios.post(`${process.env.AUTH_SERVICE}/update-plan`,{userId:payment.userId,plan:payment.plan,credits:payment.credits})
- console.log(data)
+        if (!payment) {
+            return res.status(404).json({ message: "payment not found" })
+        }
 
- return res.status(200).json({message:"Payment Verified"})
+        if (payment.status === "paid") {
+            return res.status(200).json({ success: true, duplicate: true })
+        }
 
+        if (payment.status === "processing") {
+            return res.status(409).json({ message: "payment already processing" })
+        }
+
+        if (payment.status !== "created") {
+            return res.status(400).json({ message: "payment cannot be verified" })
+        }
+
+        const planDefinition = PLANS[payment.plan]
+        if (
+            !planDefinition ||
+            planDefinition.amount <= 0 ||
+            planDefinition.amount !== payment.amount
+        ) {
+            return res.status(400).json({ message: "payment plan mismatch" })
+        }
+
+        const paymentAlreadyUsed = await Payment.exists({
+            paymentId: razorpay_payment_id,
+            orderId: { $ne: razorpay_order_id }
+        })
+
+        if (paymentAlreadyUsed) {
+            return res.status(400).json({ message: "payment already used" })
+        }
+
+        let razorpayPayment = await razorpay.payments.fetch(razorpay_payment_id)
+
+        // Validate the payment against our order before attempting capture so
+        // we never capture funds for a mismatched or tampered order.
+        if (razorpayPayment.order_id !== razorpay_order_id) {
+            return res.status(400).json({ message: "order mismatch" })
+        }
+
+        if (razorpayPayment.amount !== payment.amount * 100) {
+            return res.status(400).json({ message: "amount mismatch" })
+        }
+
+        if (razorpayPayment.currency !== payment.currency) {
+            return res.status(400).json({ message: "currency mismatch" })
+        }
+
+        if (razorpayPayment.status === "authorized") {
+            razorpayPayment = await razorpay.payments.capture(
+                razorpay_payment_id,
+                razorpayPayment.amount,
+                razorpayPayment.currency
+            )
+        }
+
+        if (razorpayPayment.status !== "captured") {
+            return res.status(400).json({ message: "payment not captured" })
+        }
+
+        let claimed
+
+        try {
+            claimed = await Payment.findOneAndUpdate(
+                { _id: payment._id, status: "created" },
+                {
+                    $set: {
+                        status: "processing",
+                        paymentId: razorpay_payment_id
+                    }
+                },
+                { new: true }
+            )
+        } catch (error) {
+            if (error.code === 11000) {
+                return res.status(400).json({ message: "payment already used" })
+            }
+            throw error
+        }
+
+        if (!claimed) {
+            return res.status(409).json({ message: "payment already processed" })
+        }
+
+        try {
+            await axios.post(
+                `${process.env.AUTH_SERVICE}/internal/update-plan`,
+                { plan: claimed.plan },
+                {
+                    headers: internalHeaders({
+                        "x-user-id": claimed.userId,
+                        "x-idempotency-key": razorpay_payment_id
+                    }),
+                    timeout: 15000
+                }
+            )
+        } catch (error) {
+            if (error.response?.status === 409) {
+                return res.status(409).json({ message: "payment already processing" })
+            }
+
+            await Payment.updateOne(
+                { _id: claimed._id, status: "processing" },
+                { $set: { status: "created" } }
+            )
+
+            console.error("update plan after payment failed", error.message)
+            return res.status(502).json({ message: "payment verification pending" })
+        }
+
+        await Payment.updateOne(
+            { _id: claimed._id, status: "processing" },
+            { $set: { status: "paid" } }
+        )
+
+        return res.status(200).json({ message: "Payment Verified" })
     } catch (error) {
- return res.status(500).json({message:`verify payment error ${error}`})
+        console.error("verify payment error", error.message)
+        return res.status(500).json({ message: "payment verification failed" })
     }
 }

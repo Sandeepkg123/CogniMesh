@@ -107,11 +107,60 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Assert Azure security configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # All backend services, including the gateway, stay on internal
+          # ingress. The frontend nginx container is the only public entry
+          # point and proxies /api/ to the gateway over the ACA internal
+          # network.
+          for app in gateway auth chat billing agent; do
+            external=$(az containerapp show \
+              --name "$app" \
+              --resource-group "$RESOURCE_GROUP" \
+              --query properties.configuration.ingress.external \
+              -o tsv)
+
+            if [ "$external" != "false" ]; then
+              echo "::error::$app must use internal-only ingress"
+              exit 1
+            fi
+
+            token_ref=$(az containerapp show \
+              --name "$app" \
+              --resource-group "$RESOURCE_GROUP" \
+              --query "properties.template.containers[0].env[?name=='INTERNAL_SERVICE_TOKEN'] | [0].secretRef" \
+              -o tsv)
+
+            if [ -z "$token_ref" ]; then
+              echo "::error::$app is missing INTERNAL_SERVICE_TOKEN"
+              exit 1
+            fi
+          done
+
+          frontend_external=$(az containerapp show \
+            --name frontend \
+            --resource-group "$RESOURCE_GROUP" \
+            --query properties.configuration.ingress.external \
+            -o tsv)
+
+          if [ "$frontend_external" != "true" ]; then
+            echo "::error::frontend must remain externally reachable"
+            exit 1
+          fi
+
       - name: Update backend apps
         shell: bash
         run: |
           set -euo pipefail
-          for app in auth chat billing agent gateway; do
+
+          # Deploy the gateway first. The new gateway already sends the
+          # internal token and strips browser-supplied identity headers, while
+          # the old services ignore the token. This avoids an outage window
+          # where new services reject traffic from the old gateway.
+          for app in gateway auth billing chat agent; do
             az containerapp update \
               --name "$app" \
               --resource-group "$RESOURCE_GROUP" \

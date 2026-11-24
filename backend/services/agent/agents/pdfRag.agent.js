@@ -1,4 +1,4 @@
-import fs, { stat } from "fs"
+import fs from "fs"
 import {PDFParse} from "pdf-parse"
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
 import { vectorStore } from "../config/vectorDb.js"
@@ -71,8 +71,6 @@ new HumanMessage(`
             ...state,
             aiResponse:error?.data?.message || "failed to analyze pdf"
         }
-   }finally{
-         fs.unlinkSync(state.file.path)
    }
 
 

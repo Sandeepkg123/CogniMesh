@@ -61,7 +61,4 @@ return {
         
 }
     }
-    finally{
-      await fs.unlink(state.file.path)
-    }
 }

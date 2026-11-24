@@ -1,32 +1,39 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
-const paymentSchema=new mongoose.Schema({
-    userId:{
-        type:String,
-        required:true
+const paymentSchema = new mongoose.Schema({
+    userId: {
+        type: String,
+        required: true,
+        index: true
     },
-    orderId:{
-        type:String,
-        required:true
+    orderId: {
+        type: String,
+        required: true,
+        unique: true
     },
-    paymentId:String,
-    amount:Number,
-    currency:{
-        type:String,
-        default:"INR"
+    paymentId: {
+        type: String,
+        unique: true,
+        sparse: true
     },
-    credits:{
-        type:Number
+    amount: Number,
+    currency: {
+        type: String,
+        default: "INR"
     },
-    plan:{
-        type:String
+    credits: {
+        type: Number
     },
-    status:{
-        type:String,
-        enum:["created","paid","failed"],
-        default:"created"
+    plan: {
+        type: String
+    },
+    status: {
+        type: String,
+        enum: ["created", "processing", "paid", "failed"],
+        default: "created"
     }
-},{timestamps:true})
+}, { timestamps: true })
 
-const Payment=mongoose.model("Payment",paymentSchema)
+const Payment = mongoose.model("Payment", paymentSchema)
+
 export default Payment

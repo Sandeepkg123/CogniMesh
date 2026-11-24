@@ -1,11 +1,19 @@
 import express from "express"
-import { createConversation, getConversations, getMessages, saveMessage, updateConversation } from "../controllers/chat.controller.js"
+import { requireInternal, requireUser } from "../../../shared/internalAuth.js"
+import {
+    createConversation,
+    getConversations,
+    getMessages,
+    updateConversation
+} from "../controllers/chat.controller.js"
 
-const router=express.Router()
+const router = express.Router()
 
-router.get("/create-conversation",createConversation)
-router.get("/get-conversations",getConversations)
-router.post("/update-conversation",updateConversation)
-router.post("/save-message",saveMessage)
-router.get("/get-messages/:conversationId",getMessages)
+router.use(requireInternal)
+
+router.post("/create-conversation", requireUser, createConversation)
+router.get("/get-conversations", requireUser, getConversations)
+router.post("/update-conversation", requireUser, updateConversation)
+router.get("/get-messages/:conversationId", requireUser, getMessages)
+
 export default router
