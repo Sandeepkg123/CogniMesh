@@ -25,7 +25,7 @@ function BillingDrawer({ open, onClose }) {
                     }
                 },
                 theme: {
-                    color: "#4F46E5"
+                    color: "#3B6EF6"
                 }
             }
 
@@ -49,7 +49,7 @@ function BillingDrawer({ open, onClose }) {
                     animate={{ x: 0 }}
                     exit={{ x: "100%" }}
                     transition={{ duration: .25 }}
-                    className="fixed right-0 top-0 z-50 h-screen w-[380px] bg-[#0f1117] border-l border-white/10 shadow-2xl flex flex-col"
+                    className="fixed right-0 top-0 z-50 h-screen w-[380px] bg-card border-l border-white/10 shadow-2xl flex flex-col"
 
                 >
 

@@ -118,8 +118,8 @@ function MessageBubble({ role, content, images }) {
               const language = className.replace("language-", "")
 
               return (
-                <div className='my-4 overflow-hidden rounded-xl border border-white/10 bg-[#111318]'>
-                  <div className='flex items-center justify-between bg-[#1b1d24] border-b border-white/10 px-4 py-2'>
+                <div className='my-4 overflow-hidden rounded-xl border border-white/10 bg-code-bg'>
+                  <div className='flex items-center justify-between bg-elevated border-b border-white/10 px-4 py-2'>
                     <span className='uppercase text-xs text-slate-400'>
                       {language}
                     </span>
@@ -145,7 +145,7 @@ function MessageBubble({ role, content, images }) {
                     customStyle={{
                       margin: 0,
                       padding: "16px",
-                      background: "#0d1117",
+                      background: "var(--code-bg)",
                       fontSize: "13px",
                     }}
 

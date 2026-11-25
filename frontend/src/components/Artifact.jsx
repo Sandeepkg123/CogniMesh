@@ -47,7 +47,7 @@ const detectLanguage = (fileName = "") => {
 function PanelContent({ title, files, file, previewDoc, canPreview, collapsed, setCollapsed, tab, setTab, activeFile, setActiveFile, copied, handleCopy, onClose }) {
   return (
     <>
-      {!collapsed ? <div className='flex flex-col h-full bg-[#0d0f14]'>
+      {!collapsed ? <div className='flex flex-col h-full bg-card'>
 
         <div className='h-14 px-4 border-b border-white/[0.06] flex items-center gap-3 shrink-0'>
           <button className='flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors duration-150 bg-transparent border-none cursor-pointer shrink-0' onClick={onClose ?? (() => setCollapsed(true))}>
@@ -135,7 +135,7 @@ function PanelContent({ title, files, file, previewDoc, canPreview, collapsed, s
 
 
       </div> :
-        <div className='hidden lg:flex h-full border-l border-white/[0.06] bg-[#0d0f14] flex-col items-center py-4 gap-3 shrink-0'>
+        <div className='hidden lg:flex h-full border-l border-white/[0.06] bg-card flex-col items-center py-4 gap-3 shrink-0'>
           <button className='flex items-center justify-center w-7 h-7 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors duration-150 bg-transparent border-none cursor-pointer shrink-0' onClick={() => setCollapsed(false)}>
             <PanelRightOpen size={16} />
           </button>
