@@ -1,1 +1,185 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* Tailwind must scan these packages for the classes they ship */
+@source "../node_modules/streamdown/dist/index.js";
+@source "../node_modules/@streamdown/code/dist/index.js";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* CogniMesh custom tokens */
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-hover: var(--hover);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-faint: var(--fg-faint);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-code-bg: var(--code-bg);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Dark-only for now. Tokens are structured so a .light block can be added later. */
+:root,
+.dark {
+  --background: #0a0a0b;
+  --foreground: #ededef;
+
+  --card: #0d0d0f;
+  --card-foreground: #ededef;
+
+  --popover: #141416;
+  --popover-foreground: #ededef;
+
+  --primary: #3b6ef6;
+  --primary-foreground: #ffffff;
+
+  --secondary: #1a1a1d;
+  --secondary-foreground: #ededef;
+
+  --muted: #141416;
+  --muted-foreground: #a1a1a6;
+
+  --accent: #1a1a1d;
+  --accent-foreground: #ededef;
+
+  --destructive: #e5484d;
+
+  --border: rgba(255, 255, 255, 0.07);
+  --input: rgba(255, 255, 255, 0.11);
+  --ring: #3b6ef6;
+
+  --chart-1: #3b6ef6;
+  --chart-2: #2fbf71;
+  --chart-3: #e8a33d;
+  --chart-4: #a1a1a6;
+  --chart-5: #6e6e76;
+
+  --sidebar: #0d0d0f;
+  --sidebar-foreground: #ededef;
+  --sidebar-primary: #3b6ef6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1a1d;
+  --sidebar-accent-foreground: #ededef;
+  --sidebar-border: rgba(255, 255, 255, 0.07);
+  --sidebar-ring: #3b6ef6;
+
+  /* CogniMesh custom tokens */
+  --surface: #0d0d0f;
+  --elevated: #141416;
+  --hover: #1a1a1d;
+  --fg-subtle: #6e6e76;
+  --fg-faint: #4a4a50;
+  --accent-soft: rgba(59, 110, 246, 0.12);
+  --success: #2fbf71;
+  --warning: #e8a33d;
+  --code-bg: #0f0f11;
+
+  --radius: 0.625rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    color-scheme: dark;
+    @apply font-sans;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  ::selection {
+    background: rgba(59, 110, 246, 0.3);
+    color: #ffffff;
+  }
+
+  /* Visible, thin scrollbars instead of hiding them */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
