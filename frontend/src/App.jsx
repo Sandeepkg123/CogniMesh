@@ -1,11 +1,15 @@
-import { useEffect } from 'react'
-import Home from './pages/Home'
-import getCurrentUser from './features/getCurrentUser'
-import { useDispatch } from 'react-redux'
-import { setUserdata } from './redux/userSlice'
+import { useEffect } from "react"
+import Home from "./pages/Home"
+import getCurrentUser from "./features/getCurrentUser"
+import { useDispatch } from "react-redux"
+import { setUserdata } from "./redux/userSlice"
+import { TooltipProvider } from "./components/ui/tooltip"
+import { Toaster } from "./components/ui/sonner"
+import { useMediaQuery } from "./hooks/use-media-query"
 
 function App() {
   const dispatch = useDispatch()
+  const isDesktop = useMediaQuery("(min-width: 1024px)")
 
   useEffect(() => {
     const getUser = async () => {
@@ -15,7 +19,16 @@ function App() {
     getUser()
   }, [dispatch])
 
-  return <Home />
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Home />
+      <Toaster
+        theme="dark"
+        richColors
+        position={isDesktop ? "bottom-right" : "top-center"}
+      />
+    </TooltipProvider>
+  )
 }
 
 export default App

@@ -1,57 +1,73 @@
-import { signInWithPopup } from 'firebase/auth'
-import { auth, googleProvider } from '../../utils/firebase'
-import api from '../../utils/axios'
-import { FcGoogle } from "react-icons/fc";
-import { useDispatch, useSelector } from 'react-redux';
-import { setUserdata } from '../redux/userSlice';
-import SideBar from '../components/SideBar';
-import ChatArea from '../components/ChatArea';
-import Artifact from '../components/Artifact';
+import { signInWithPopup } from "firebase/auth"
+import { auth, googleProvider } from "../../utils/firebase"
+import api from "../../utils/axios"
+import { FcGoogle } from "react-icons/fc"
+import { useDispatch, useSelector } from "react-redux"
+import { setUserdata } from "../redux/userSlice"
+import AppShell from "../components/layout/AppShell"
+import BrandMark from "../components/layout/BrandMark"
+import ChatArea from "../components/ChatArea"
+import Artifact from "../components/Artifact"
 
 function Home() {
-    const {userData}=useSelector(state=>state.user)
-    const dispatch=useDispatch()
-    const handleLogin = async (token) => {
-        try {
-            const { data } = await api.post("/api/auth/login", { token })
-            dispatch(setUserdata(data))
-        } catch (error) {
-            console.error(error)
-        }
+  const { userData } = useSelector((state) => state.user)
+  const dispatch = useDispatch()
+
+  const handleLogin = async (token) => {
+    try {
+      const { data } = await api.post("/api/auth/login", { token })
+      dispatch(setUserdata(data))
+    } catch (error) {
+      console.error(error)
     }
+  }
 
+  const googleLogin = async () => {
+    const data = await signInWithPopup(auth, googleProvider)
+    const token = await data.user.getIdToken()
+    await handleLogin(token)
+  }
 
-    const googleLogin = async () => {
-        const data = await signInWithPopup(auth, googleProvider)
-        const token = await data.user.getIdToken()
-        await handleLogin(token)
-    }
-    return (
-        <div className='h-screen  flex bg-[#0d0f14] text-white overflow-hidden'>
+  return (
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+      <AppShell>
+        <ChatArea />
+      </AppShell>
 
-<SideBar/>
-<ChatArea/>
-<Artifact/>
+      <Artifact />
 
+      {!userData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="flex w-[380px] max-w-full flex-col gap-5 rounded-2xl border border-border bg-popover p-7 shadow-2xl">
+            <div className="flex flex-col gap-3">
+              <BrandMark className="size-8" />
+              <div className="flex flex-col gap-1">
+                <h2 className="text-[17px] font-semibold tracking-tight text-foreground">
+                  Welcome to CogniMesh
+                </h2>
+                <p className="text-[13px] leading-relaxed text-fg-subtle">
+                  Chat, write code, analyze documents, and build decks in one place.
+                </p>
+              </div>
+            </div>
 
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-white py-[11px] text-sm font-medium text-black/90 transition-colors hover:bg-gray-200"
+              onClick={googleLogin}
+            >
+              <FcGoogle size={15} />
+              Continue with Google
+            </button>
 
-
-{!userData &&   <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur'>
-                <div className='w-[340px] bg-[#13151c] border border-white/[0.08] rounded-2xl p-7 flex flex-col gap-5'>
-                    <div className='flex flex-col gap-1'>
-                        <h2 className='text-[17px] font-semibold text-slate-100 tracking-tight'>Welcome to CogniMesh</h2>
-                        <p className='text-[13px] text-slate-500'>Please login to continue using the app.</p>
-                    </div>
-
-                    <button className='w-full flex items-center justify-center gap-3 py-[11px] rounded-xl text-sm font-medium text-black/90 bg-white hover:bg-gray-200  transition-all duration-150 cursor-pointer' onClick={googleLogin}>
-                        <FcGoogle size={15} />
-                        Continue With Google
-                    </button>
-                </div>
-            </div>}
-          
+            <p className="text-center text-[11px] leading-relaxed text-fg-faint">
+              By continuing, you agree to our Terms and Privacy Policy.
+            </p>
+          </div>
         </div>
-    )
+      )}
+    </div>
+  )
 }
 
 export default Home
