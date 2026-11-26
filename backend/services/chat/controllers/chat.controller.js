@@ -59,7 +59,7 @@ export const updateConversation = async (req, res) => {
 
 export const saveMessage = async (req, res) => {
   try {
-    const { conversationId, role, content, images, artifacts } = req.body || {}
+    const { conversationId, role, content, agent, images, artifacts } = req.body || {}
 
     if (!mongoose.isValidObjectId(conversationId)) {
       return res.status(400).json({ message: "invalid conversation id" })
@@ -96,6 +96,7 @@ export const saveMessage = async (req, res) => {
       conversationId,
       content,
       role,
+      agent,
       images,
       artifacts
     })

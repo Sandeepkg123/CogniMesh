@@ -131,11 +131,13 @@ export const agent = async (req, res, next) => {
             conversationId,
             role: "assistant",
             content: answer,
+            agent: result?.agent,
             images,
             artifacts
         })
 
         return res.status(200).json({
+            agent: result?.agent,
             answer,
             images,
             artifacts

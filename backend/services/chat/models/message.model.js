@@ -28,6 +28,10 @@ const messageSchema=new mongoose.Schema({
         enum:["user","assistant"]
     },
     content:String,
+    agent:{
+        type:String,
+        enum:["auto","chat","search","coding","pdf","ppt","vision","pdfRag","imageAnalyzer"]
+    },
     images:[String],
     artifacts:[artifactSchema]
 
