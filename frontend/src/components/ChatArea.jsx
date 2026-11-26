@@ -1,17 +1,21 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
-import ChatHeader from "./chat/ChatHeader"
-import MessageList from "./MessageList"
-import ChatInput from "./ChatInput"
 import getMessages from "../features/getMessages"
+import { useSendMessage } from "../hooks/use-send-message"
 import { setArtifacts, setMessages } from "../redux/messageSlice"
+import ChatSession from "./chat/ChatSession"
 
 function ChatArea() {
   const { selectedConversation } = useSelector((state) => state.conversation)
   const dispatch = useDispatch()
+  const { send, stop, regenerate, isLoading } = useSendMessage()
 
+  const [historyLoading, setHistoryLoading] = useState({ id: null, loading: false })
   const lastLoadedIdRef = useRef(null)
   const requestIdRef = useRef(0)
+
+  const isLoadingHistory =
+    historyLoading.loading && historyLoading.id === selectedConversation?._id
 
   useEffect(() => {
     if (!selectedConversation) {
@@ -36,27 +40,38 @@ function ChatArea() {
     }
 
     const loadMessages = async () => {
-      const data = await getMessages(selectedConversation._id)
-      if (requestIdRef.current !== requestId) return
+      setHistoryLoading({ id: selectedConversation._id, loading: true })
 
-      const messages = Array.isArray(data) ? data : []
-      dispatch(setMessages(messages))
+      try {
+        const data = await getMessages(selectedConversation._id)
+        if (requestIdRef.current !== requestId) return
 
-      const latestArtifactMessage = [...messages]
-        .reverse()
-        .find((message) => message.artifacts?.length > 0)
-      dispatch(setArtifacts(latestArtifactMessage?.artifacts || []))
+        const messages = Array.isArray(data) ? data : []
+        dispatch(setMessages(messages))
+
+        const latestArtifactMessage = [...messages]
+          .reverse()
+          .find((message) => message.artifacts?.length > 0)
+        dispatch(setArtifacts(latestArtifactMessage?.artifacts || []))
+      } finally {
+        if (requestIdRef.current === requestId) {
+          setHistoryLoading({ id: selectedConversation._id, loading: false })
+        }
+      }
     }
 
     loadMessages()
   }, [selectedConversation, dispatch])
 
   return (
-    <div className="flex h-full min-w-0 flex-col bg-background">
-      <ChatHeader />
-      <MessageList />
-      <ChatInput />
-    </div>
+    <ChatSession
+      key={selectedConversation?._id || "new"}
+      send={send}
+      stop={stop}
+      regenerate={regenerate}
+      isLoading={isLoading}
+      isLoadingHistory={isLoadingHistory}
+    />
   )
 }
 

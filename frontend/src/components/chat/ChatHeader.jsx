@@ -3,8 +3,9 @@ import { useSelector } from "react-redux"
 import { useNewChat } from "../../hooks/use-new-chat"
 import { conversationTitle } from "../../lib/group-conversations"
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip"
+import AgentPicker from "./AgentPicker"
 
-export default function ChatHeader() {
+export default function ChatHeader({ hasAttachment = false }) {
   const { selectedConversation } = useSelector((state) => state.conversation)
   const { messages } = useSelector((state) => state.message)
   const startNewChat = useNewChat()
@@ -26,6 +27,8 @@ export default function ChatHeader() {
       )}
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
+        <AgentPicker disabled={hasAttachment} />
+        <span className="mx-1 h-4 w-px bg-border" aria-hidden="true" />
         <Tooltip>
           <TooltipTrigger asChild>
             <button
