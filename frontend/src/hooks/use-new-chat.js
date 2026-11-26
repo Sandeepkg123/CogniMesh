@@ -1,7 +1,7 @@
 import { useCallback } from "react"
 import { useDispatch } from "react-redux"
 import { setSelectedConversation } from "../redux/conversationSlice"
-import { setArtifacts, setMessages } from "../redux/messageSlice"
+import { setAgent, setArtifacts, setMessages } from "../redux/messageSlice"
 
 export function useNewChat() {
   const dispatch = useDispatch()
@@ -10,5 +10,6 @@ export function useNewChat() {
     dispatch(setSelectedConversation(null))
     dispatch(setMessages([]))
     dispatch(setArtifacts([]))
+    dispatch(setAgent("auto"))
   }, [dispatch])
 }
