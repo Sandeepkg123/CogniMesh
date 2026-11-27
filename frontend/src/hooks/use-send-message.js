@@ -127,6 +127,15 @@ export function useSendMessage() {
           return null
         }
 
+        if (data?.failed) {
+          const message =
+            typeof data?.answer === "string" && data.answer
+              ? data.answer
+              : data?.message || "The agent failed. Please try again."
+          toast.error(message)
+          return null
+        }
+
         if (!data) {
           toast.error("The message failed. Please try again.")
           return null
