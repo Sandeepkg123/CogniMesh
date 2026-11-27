@@ -23,6 +23,26 @@ function createId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+function notifySendError(error) {
+  const status = error?.response?.status
+  const body = error?.response?.data
+  const message = typeof body?.message === "string" ? body.message : null
+
+  if (status === 429) {
+    toast.warning(message || "Rate limit reached. Please try again shortly.", {
+      duration: 5000,
+    })
+    return
+  }
+
+  if (status === 402) {
+    toast.error(message || "You're out of credits. Upgrade to continue.")
+    return
+  }
+
+  toast.error(message || "The message failed. Please try again.")
+}
+
 /**
  * Owns the send lifecycle for the active conversation: conversation creation,
  * title update, optimistic user message, assistant response, abort, and
@@ -102,12 +122,19 @@ export function useSendMessage() {
 
         if (controller.signal.aborted) return null
 
+        if (data?.error) {
+          notifySendError(data.error)
+          return null
+        }
+
         if (!data) {
           toast.error("The message failed. Please try again.")
           return null
         }
 
-        dispatch(setArtifacts(data?.artifacts || []))
+        if (Array.isArray(data?.artifacts) && data.artifacts.length > 0) {
+          dispatch(setArtifacts(data.artifacts))
+        }
         dispatch(
           addMessage({
             id: createId(),
@@ -124,7 +151,7 @@ export function useSendMessage() {
       } catch (error) {
         if (!controller.signal.aborted) {
           console.error(error)
-          toast.error("The message failed. Please try again.")
+          notifySendError(error)
         }
         return null
       } finally {

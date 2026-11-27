@@ -25,6 +25,8 @@ function App() {
       <Toaster
         theme="dark"
         richColors
+        duration={3000}
+        offset={{ bottom: 180, right: 24 }}
         position={isDesktop ? "bottom-right" : "top-center"}
       />
     </TooltipProvider>

@@ -8,10 +8,12 @@ async function sendMessage(payload, options = {}) {
     })
     return data
  } catch (error) {
-    if (error.code !== "ERR_CANCELED") {
-      console.error(error)
+    if (error.code === "ERR_CANCELED") {
+      return null
     }
-    return null
+
+    console.error(error)
+    return { error }
  }
 }
 
