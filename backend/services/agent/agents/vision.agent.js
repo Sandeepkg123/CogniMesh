@@ -2,12 +2,13 @@ import { getModel } from "../config/llmModels.js"
 import axios from "axios"
 import { uploadToBlob } from "../utils/uploadToBlob.js"
 import { getFromBlob } from "../utils/getFromBlob.js"
-import { deductCredits } from "../utils/deductCredits.js"
+import { checkCredits, deductCredits } from "../utils/deductCredits.js"
 import { checkAgentLimit } from "../config/agentLimit.js"
 export const visionAgent=async (state) => {
 
     try {
         await checkAgentLimit(state.userId,"image")
+        await checkCredits(state.userId,"vision")
          const llm=await getModel("image")
     const res=await llm.invoke(`
         You are an elite AI image prompt engineer.
@@ -60,7 +61,8 @@ return {
        console.log(error)
          return {
             ...state,
-            aiResponse:error?.data?.message || "failed to generate image"
+            aiResponse:error?.data?.message || "failed to generate image",
+            failed: true
         }
     }
    

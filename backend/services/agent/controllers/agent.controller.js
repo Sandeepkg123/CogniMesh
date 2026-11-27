@@ -5,6 +5,7 @@ import { graph } from "../graph/graph.js"
 import { addMessage } from "../config/memory.js"
 import { internalHeaders } from "../../../shared/internalAuth.js"
 import { hasValidFileSignature } from "../utils/fileSignature.js"
+import { checkCredits } from "../utils/deductCredits.js"
 
 const ALLOWED_AGENTS = new Set([
     "auto",
@@ -90,6 +91,8 @@ export const agent = async (req, res, next) => {
             }
         }
 
+        await checkCredits(userId, selectedAgent === "auto" ? "chat" : selectedAgent)
+
         await verifyConversation(userId, conversationId)
 
         await saveMessage(userId, {
@@ -106,6 +109,8 @@ export const agent = async (req, res, next) => {
             file
         })
 
+        const failed = result?.failed === true
+        const agent = result?.agent || selectedAgent
         const answer = typeof result?.aiResponse === "string"
             ? result.aiResponse
             : String(result?.aiResponse ?? "")
@@ -120,27 +125,30 @@ export const agent = async (req, res, next) => {
             ? result.artifacts
             : undefined
 
-        await addMessage(userId, conversationId, "user", promptText).catch((error) => {
-            console.error("failed to update chat memory", error.message)
-        })
-        await addMessage(userId, conversationId, "assistant", answer).catch((error) => {
-            console.error("failed to update chat memory", error.message)
-        })
+        if (!failed) {
+            await addMessage(userId, conversationId, "user", promptText).catch((error) => {
+                console.error("failed to update chat memory", error.message)
+            })
+            await addMessage(userId, conversationId, "assistant", answer).catch((error) => {
+                console.error("failed to update chat memory", error.message)
+            })
 
-        await saveMessage(userId, {
-            conversationId,
-            role: "assistant",
-            content: answer,
-            agent: result?.agent,
-            images,
-            artifacts
-        })
+            await saveMessage(userId, {
+                conversationId,
+                role: "assistant",
+                content: answer,
+                agent,
+                images,
+                artifacts
+            })
+        }
 
         return res.status(200).json({
-            agent: result?.agent,
+            agent,
             answer,
             images,
-            artifacts
+            artifacts,
+            failed
         })
     } catch (error) {
         if (error.response?.status === 404) {

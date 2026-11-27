@@ -2,11 +2,12 @@ import { getModel } from "../config/llmModels.js"
 import { generatePpt } from "../utils/generatePpt.js"
 import { getFromBlob } from "../utils/getFromBlob.js"
 import { uploadToBlob } from "../utils/uploadToBlob.js"
-import { deductCredits } from "../utils/deductCredits.js"
+import { checkCredits, deductCredits } from "../utils/deductCredits.js"
 import { checkAgentLimit } from "../config/agentLimit.js"
 export const pptAgent=async (state) => {
     try {
         await checkAgentLimit(state.userId,"ppt")
+        await checkCredits(state.userId,"ppt")
         const llm=await getModel("ppt")
         const prompt=`You are a professional presentation designer.
 
@@ -71,7 +72,8 @@ _Link expires in 10 minutes._`
         console.log(error)
          return {
             ...state,
-            aiResponse:error?.data?.message || "failed to generate ppt"
+            aiResponse:error?.data?.message || "failed to generate ppt",
+            failed: true
         }
        
 

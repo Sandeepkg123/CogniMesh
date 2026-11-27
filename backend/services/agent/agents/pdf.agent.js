@@ -2,11 +2,12 @@ import { getModel } from "../config/llmModels.js"
 import { generatePdf } from "../utils/generatePdf.js"
 import { getFromBlob } from "../utils/getFromBlob.js"
 import { uploadToBlob } from "../utils/uploadToBlob.js"
-import { deductCredits } from "../utils/deductCredits.js"
+import { checkCredits, deductCredits } from "../utils/deductCredits.js"
 import { checkAgentLimit } from "../config/agentLimit.js"
 export const pdfAgent=async (state) => {
     try {
         const rate=await checkAgentLimit(state.userId,"pdf")
+        await checkCredits(state.userId,"pdf")
         
         
         const llm=await getModel("pdf")
@@ -67,7 +68,8 @@ _Link expires in 10 minutes._`
        console.log(error)
          return {
             ...state,
-            aiResponse:error?.data?.message || "failed to generate pdf"
+            aiResponse:error?.data?.message || "failed to generate pdf",
+            failed: true
         }
     }
 }

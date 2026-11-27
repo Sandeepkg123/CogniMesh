@@ -2,10 +2,11 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages"
 import { getModel } from "../config/llmModels.js"
 import fs from "fs/promises"
-import { deductCredits } from "../utils/deductCredits.js"
+import { checkCredits, deductCredits } from "../utils/deductCredits.js"
 import { checkAgentLimit } from "../config/agentLimit.js"
 export const imageAnalyzer =async (state) => {
      await checkAgentLimit(state.userId,"image")
+     await checkCredits(state.userId,"imageAnalyzer")
     try {
         const llm = await getModel("imageAnalyzer")
 
@@ -47,7 +48,7 @@ Rules:
         ]
 
 const response=await llm.invoke(messages)
- await deductCredits(state.userId,"vision")
+ await deductCredits(state.userId,"imageAnalyzer")
 return {
     ...state,
     aiResponse:response.content
@@ -57,8 +58,8 @@ return {
        console.log(error)
          return {
             ...state,
-            aiResponse:error?.data?.message || "failed to analyze image"
-        
+            aiResponse:error?.data?.message || "failed to analyze image",
+            failed: true
 }
     }
 }

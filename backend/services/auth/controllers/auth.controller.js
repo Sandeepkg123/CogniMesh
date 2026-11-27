@@ -253,6 +253,36 @@ export const updateUserPayment = async (req, res) => {
     }
 }
 
+export const creditCheck = async (req, res) => {
+    try {
+        const { agent } = req.query || {}
+        const requiredCredits = COST[agent]
+
+        if (!requiredCredits) {
+            return res.status(400).json({ message: "unknown agent" })
+        }
+
+        const user = await User.findById(req.userId).select("credits")
+
+        if (!user) {
+            return res.status(404).json({ message: "user not found" })
+        }
+
+        if (user.credits < requiredCredits) {
+            return res.status(402).json({ message: "Not enough credits." })
+        }
+
+        return res.status(200).json({
+            success: true,
+            credits: user.credits,
+            requiredCredits
+        })
+    } catch (error) {
+        console.error("credit check error", error)
+        return res.status(500).json({ message: "credit check failed" })
+    }
+}
+
 export const deductCredits = async (req, res) => {
     try {
         const { agent } = req.body || {}

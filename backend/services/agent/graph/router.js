@@ -1,8 +1,10 @@
 import { getModel } from "../config/llmModels.js"
+import { checkCredits } from "../utils/deductCredits.js"
 
 export const router = async (state) => {
 
   if (state.agent && state.agent !== "auto") {
+    await checkCredits(state.userId, state.agent)
     return {
       ...state,
       agent: state.agent
@@ -11,6 +13,7 @@ export const router = async (state) => {
 
   if(state.file){
 if(state.file.mimetype==="application/pdf"){
+    await checkCredits(state.userId, "pdfRag")
     return {
       ...state,
       agent:"pdfRag"
@@ -18,6 +21,7 @@ if(state.file.mimetype==="application/pdf"){
   }
 
     if(state.file.mimetype.startsWith("image/")){
+    await checkCredits(state.userId, "imageAnalyzer")
     return {
       ...state,
       agent:"imageAnalyzer"
@@ -89,11 +93,12 @@ User Query:
 
   const response = await llm.invoke(prompt)
 
+  const agent = response.content.trim().toLowerCase()
+  await checkCredits(state.userId, agent)
+
   return {
     ...state,
-    agent: response.content
-      .trim()
-      .toLowerCase()
+    agent
   }
 
 
