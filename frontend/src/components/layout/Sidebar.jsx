@@ -1,11 +1,15 @@
 import { useEffect, useMemo } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { PanelLeftClose, Plus, Search, X } from "lucide-react"
+import { toast } from "sonner"
+import { deleteConversation } from "../../features/deleteConversation"
 import { getConversations } from "../../features/getConversations"
 import {
+  removeConversation,
   setConversations,
   setSelectedConversation,
 } from "../../redux/conversationSlice"
+import { setArtifacts, setMessages } from "../../redux/messageSlice"
 import { useNewChat } from "../../hooks/use-new-chat"
 import { useRenameConversation } from "../../hooks/use-rename-conversation"
 import { conversationTitle, groupConversations } from "../../lib/group-conversations"
@@ -80,6 +84,32 @@ export default function Sidebar({
     dispatch(setSelectedConversation(conversation))
     rename.cancel()
     onNavigate?.()
+  }
+
+  const handleDelete = async (conversation) => {
+    const id = conversation._id
+    const title = conversationTitle(conversation)
+    const confirmed = window.confirm(
+      `Delete "${title}"? This cannot be undone.`
+    )
+    if (!confirmed) return
+
+    const wasSelected = selectedConversation?._id === id
+    const data = await deleteConversation(id)
+
+    if (!data) {
+      toast.error("Could not delete chat")
+      return
+    }
+
+    dispatch(removeConversation(id))
+    if (wasSelected) {
+      dispatch(setMessages([]))
+      dispatch(setArtifacts([]))
+    }
+
+    rename.cancel()
+    toast.success("Chat deleted")
   }
 
   if (collapsed && !mobile) {
@@ -243,6 +273,7 @@ export default function Sidebar({
                       onStartRename={rename.start}
                       onCancelRename={rename.cancel}
                       onSaveRename={rename.save}
+                      onDelete={handleDelete}
                       onSelect={handleSelect}
                     />
                   ))}

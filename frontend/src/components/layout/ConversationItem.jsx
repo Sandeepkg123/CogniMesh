@@ -1,4 +1,4 @@
-import { MoreHorizontal, Pencil } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,7 @@ export default function ConversationItem({
   onStartRename,
   onCancelRename,
   onSaveRename,
+  onDelete,
   onSelect,
 }) {
   const title = conversationTitle(conversation)
@@ -91,6 +92,13 @@ export default function ConversationItem({
             <DropdownMenuItem onSelect={() => onStartRename(conversation)}>
               <Pencil />
               Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => onDelete?.(conversation)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 />
+              Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

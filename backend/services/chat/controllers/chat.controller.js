@@ -134,6 +134,36 @@ export const getMessages = async (req, res) => {
   }
 }
 
+export const deleteConversation = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "invalid conversation id" })
+    }
+
+    const conversation = await Conversation.findOne({
+      _id: id,
+      userId: req.userId
+    })
+
+    if (!conversation) {
+      return res.status(404).json({ message: "conversation not found" })
+    }
+
+    await Message.deleteMany({ conversationId: id })
+    await Conversation.findOneAndDelete({
+      _id: id,
+      userId: req.userId
+    })
+
+    return res.status(200).json({ success: true })
+  } catch (error) {
+    console.error("delete conversation error", error)
+    return res.status(500).json({ message: "failed to delete conversation" })
+  }
+}
+
 export const verifyConversation = async (req, res) => {
   try {
     const { conversationId } = req.params
