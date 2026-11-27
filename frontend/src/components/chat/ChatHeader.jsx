@@ -1,13 +1,16 @@
-import { Plus } from "lucide-react"
+import { PanelRightClose, PanelRightOpen, Plus } from "lucide-react"
 import { useSelector } from "react-redux"
 import { useNewChat } from "../../hooks/use-new-chat"
 import { conversationTitle } from "../../lib/group-conversations"
+import { useArtifactPanel } from "../artifact/ArtifactContext"
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip"
 import AgentPicker from "./AgentPicker"
 
 export default function ChatHeader({ hasAttachment = false }) {
   const { selectedConversation } = useSelector((state) => state.conversation)
   const { messages } = useSelector((state) => state.message)
+  const { hasArtifact, collapsed: artifactCollapsed, toggle: toggleArtifact } =
+    useArtifactPanel()
   const startNewChat = useNewChat()
 
   const title = selectedConversation
@@ -28,6 +31,29 @@ export default function ChatHeader({ hasAttachment = false }) {
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <AgentPicker disabled={hasAttachment} />
+        {hasArtifact && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={
+                  artifactCollapsed ? "Show artifact" : "Hide artifact"
+                }
+                onClick={toggleArtifact}
+                className="flex size-8 items-center justify-center rounded-md text-fg-subtle outline-none transition-colors hover:bg-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+              >
+                {artifactCollapsed ? (
+                  <PanelRightOpen className="size-4" />
+                ) : (
+                  <PanelRightClose className="size-4" />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {artifactCollapsed ? "Show artifact" : "Hide artifact"}
+            </TooltipContent>
+          </Tooltip>
+        )}
         <span className="mx-1 h-4 w-px bg-border" aria-hidden="true" />
         <Tooltip>
           <TooltipTrigger asChild>
