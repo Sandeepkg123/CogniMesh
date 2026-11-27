@@ -1,6 +1,10 @@
 import { useState } from "react"
-import { useDispatch, useSelector } from "react-redux"
+import { useSelector } from "react-redux"
 import { ChevronsUpDown, Coins, LogOut } from "lucide-react"
+import { useLogout } from "../../hooks/use-logout"
+import { getCreditTotal } from "../../lib/plans"
+import { cn } from "../../lib/utils"
+import CreditsMeter from "../billing/CreditsMeter"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,9 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu"
-import logOut from "../../features/logOut"
-import { setUserdata } from "../../redux/userSlice"
-import { cn } from "../../lib/utils"
 
 function initials(name) {
   const parts = (name || "").trim().split(/\s+/).filter(Boolean)
@@ -49,12 +50,7 @@ export function UserAvatar({ user, size = "md" }) {
 
 export default function UserCard({ onOpenBilling }) {
   const { userData } = useSelector((state) => state.user)
-  const dispatch = useDispatch()
-
-  const handleLogout = async () => {
-    await logOut()
-    dispatch(setUserdata(null))
-  }
+  const handleLogout = useLogout()
 
   if (!userData) {
     return (
@@ -72,6 +68,7 @@ export default function UserCard({ onOpenBilling }) {
     ? userData.plan.charAt(0).toUpperCase() + userData.plan.slice(1)
     : "Free"
   const credits = Number(userData.credits ?? 0).toLocaleString()
+  const totalCredits = getCreditTotal(userData)
 
   return (
     <DropdownMenu>
@@ -88,6 +85,12 @@ export default function UserCard({ onOpenBilling }) {
             <span className="block truncate text-[11px] text-fg-subtle">
               {plan} · {credits} credits
             </span>
+            <CreditsMeter
+              credits={userData.credits}
+              total={totalCredits}
+              compact
+              className="mt-1"
+            />
           </span>
           <ChevronsUpDown className="size-3.5 shrink-0 text-fg-faint" />
         </button>
