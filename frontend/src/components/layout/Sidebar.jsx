@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { PanelLeftClose, Plus, Search, X } from "lucide-react"
 import { getConversations } from "../../features/getConversations"
@@ -12,6 +12,7 @@ import { conversationTitle, groupConversations } from "../../lib/group-conversat
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip"
 import BrandMark from "./BrandMark"
 import ConversationItem from "./ConversationItem"
+import SidebarSearch from "./SidebarSearch"
 import UserCard, { UserAvatar } from "./UserCard"
 
 function RailIconButton({ label, onClick, children }) {
@@ -38,6 +39,7 @@ export default function Sidebar({
   mobile = false,
   onNavigate,
   onOpenBilling,
+  onOpenCommandPalette,
 }) {
   const dispatch = useDispatch()
   const { conversations, selectedConversation } = useSelector(
@@ -46,10 +48,6 @@ export default function Sidebar({
   const { userData } = useSelector((state) => state.user)
   const startNewChat = useNewChat()
   const rename = useRenameConversation()
-
-  const [query, setQuery] = useState("")
-  const searchRef = useRef(null)
-  const pendingFocusRef = useRef(false)
 
   useEffect(() => {
     if (!userData?.userId) return
@@ -67,57 +65,20 @@ export default function Sidebar({
     }
   }, [dispatch, userData?.userId])
 
-  const focusSearch = useCallback(() => {
-    if (collapsed) {
-      pendingFocusRef.current = true
-      onToggleCollapsed?.()
-      return
-    }
-
-    searchRef.current?.focus()
-  }, [collapsed, onToggleCollapsed])
-
-  useEffect(() => {
-    if (!collapsed && pendingFocusRef.current) {
-      pendingFocusRef.current = false
-      searchRef.current?.focus()
-    }
-  }, [collapsed])
-
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault()
-        focusSearch()
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [focusSearch])
-
-  const filtered = useMemo(() => {
-    const normalized = query.trim().toLowerCase()
-    if (!normalized) return conversations
-
-    return conversations.filter((conversation) =>
-      conversationTitle(conversation).toLowerCase().includes(normalized)
-    )
-  }, [conversations, query])
-
-  const groups = useMemo(() => groupConversations(filtered), [filtered])
+  const groups = useMemo(
+    () => groupConversations(conversations),
+    [conversations]
+  )
 
   const handleNewChat = () => {
     startNewChat()
     rename.cancel()
-    setQuery("")
     onNavigate?.()
   }
 
   const handleSelect = (conversation) => {
     dispatch(setSelectedConversation(conversation))
     rename.cancel()
-    setQuery("")
     onNavigate?.()
   }
 
@@ -138,7 +99,7 @@ export default function Sidebar({
           <TooltipContent side="right">Expand sidebar</TooltipContent>
         </Tooltip>
 
-        <RailIconButton label="Search chats" onClick={focusSearch}>
+        <RailIconButton label="Search chats" onClick={onOpenCommandPalette}>
           <Search className="size-4" />
         </RailIconButton>
 
@@ -238,20 +199,7 @@ export default function Sidebar({
         </div>
 
         <div className="shrink-0 px-3 pb-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-fg-faint" />
-            <input
-              ref={searchRef}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search chats"
-              aria-label="Search chats"
-              className="h-9 w-full rounded-md border border-border bg-elevated pr-8 pl-8 text-[13px] text-foreground outline-none transition-colors placeholder:text-fg-subtle focus:border-primary/40 focus:ring-2 focus:ring-primary/15 lg:pr-12"
-            />
-            <kbd className="pointer-events-none absolute top-1/2 right-2 hidden -translate-y-1/2 rounded border border-border bg-card px-1 font-mono text-[10px] text-fg-faint lg:block">
-              ⌘K
-            </kbd>
-          </div>
+          <SidebarSearch onOpen={onOpenCommandPalette} />
         </div>
 
         <div className="shrink-0 px-3 pb-1">
@@ -268,26 +216,14 @@ export default function Sidebar({
         <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
           {groups.length === 0 ? (
             <div className="flex flex-col items-center gap-1 px-4 py-10 text-center">
-              <p className="text-[13px] text-fg-subtle">
-                {query ? "No chats found" : "No chats yet"}
-              </p>
-              {query ? (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  className="text-[12px] text-primary hover:underline"
-                >
-                  Clear search
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleNewChat}
-                  className="text-[12px] text-primary hover:underline"
-                >
-                  Start your first chat
-                </button>
-              )}
+              <p className="text-[13px] text-fg-subtle">No chats yet</p>
+              <button
+                type="button"
+                onClick={handleNewChat}
+                className="text-[12px] text-primary hover:underline"
+              >
+                Start your first chat
+              </button>
             </div>
           ) : (
             groups.map((group) => (
