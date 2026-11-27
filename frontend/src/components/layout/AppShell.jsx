@@ -151,6 +151,28 @@ export default function AppShell({ children }) {
     setMobileArtifactKey(null)
   }, [])
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (!(event.metaKey || event.ctrlKey) || event.repeat) return
+
+      const key = event.key.toLowerCase()
+
+      if (key === "b") {
+        event.preventDefault()
+        toggleSidebar()
+        return
+      }
+
+      if (key === "j" && hasArtifact) {
+        event.preventDefault()
+        toggleArtifact()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [hasArtifact, toggleArtifact, toggleSidebar])
+
   const artifactContext = useMemo(
     () => ({
       hasArtifact,
