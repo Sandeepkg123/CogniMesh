@@ -1,16 +1,16 @@
 # CogniMesh Frontend — UI Redesign Plan
 
-**Status:** Approved for implementation (P0–P5)
+**Status:** ✅ Complete (P0–P5)
 **Created:** 2026-11-25
-**Scope:** `frontend/` — plus one approved one-line backend change
+**Scope:** `frontend/` — plus approved backend changes: §13.1, conversation delete, §13.3, and `/internal/credits`
 **Design direction:** Linear-style premium dark, cobalt accent
 **Stack:** React 19 + Vite 8 + Tailwind CSS 4.3 + shadcn/ui + CodeMirror 6
 
-> This file lives outside the repo because the planning agent may only write plan files to `~/.opencode/plan`. When implementation starts, copy it to `frontend/docs/ui-redesign-plan.md`.
+> This file is `frontend/plan.md`. It is the authoritative redesign plan and verification record.
 
 ### Hard constraints (non-negotiable)
 
-1. **No git commits** during implementation. Working tree only.
+1. **No git commits unless the user explicitly asks.** The user has asked for local feature commits.
 2. **No pushes** to GitHub, Azure, or any remote. Not until explicitly told.
 3. **No CI triggers.** `.github/workflows/deploy.yml` runs on push to `main` — we will not push.
 4. **Verify by running the full stack in Docker locally**, not just `npm run dev`.
@@ -51,8 +51,8 @@ Rebuild the UI on a real design system so CogniMesh looks like a paid, opinionat
 ### Non-goals (this pass)
 - Streaming responses / SSE (separate backend project).
 - Light mode (tokens are structured so it's a CSS-only follow-up).
-- Email/password auth, new backend features, i18n.
-- Automated tests beyond build + lint.
+- Email/password auth, i18n.
+- Automated CI; local Playwright harnesses are used for verification.
 - Redesigning the marketing/landing surface (there isn't one yet).
 
 ---
@@ -70,7 +70,7 @@ Rebuild the UI on a real design system so CogniMesh looks like a paid, opinionat
 | Light mode | Not in this pass |
 | Code viewer | CodeMirror 6 (Monaco removed) |
 | Components | shadcn/ui (copied into repo, owned) |
-| Backend | Only `agent: result.agent` in the chat response |
+| Backend | §13.1 `agent`, conversation delete, §13.3 `failed`/credit pre-check, `/internal/credits` |
 
 ---
 
@@ -88,8 +88,8 @@ Rebuild the UI on a real design system so CogniMesh looks like a paid, opinionat
 | `--border-strong` | `rgba(255,255,255,.11)` | Inputs, focused cards |
 | `--foreground` | `#EDEDEF` | Primary text |
 | `--muted-foreground` | `#A1A1A6` | Secondary text |
-| `--fg-subtle` | `#6E6E76` | Tertiary / placeholders |
-| `--fg-faint` | `#4A4A50` | Section labels, dividers' text |
+| `--fg-subtle` | `#8A8A92` | Tertiary / placeholders |
+| `--fg-faint` | `#8A8A92` | Section labels, dividers' text |
 | `--primary` | `#3B6EF6` | Accent, active states, send |
 | `--primary-hover` | `#2F5FE0` | Accent hover |
 | `--accent-soft` | `rgba(59,110,246,.12)` | Active row bg, agent pill bg |
@@ -168,8 +168,8 @@ Cards get **borders, not shadows**. Shadows only for floating layers. All motion
   --ring: #3b6ef6;
   --sidebar: #0d0d0f;
 
-  --fg-subtle: #6e6e76;
-  --fg-faint: #4a4a50;
+  --fg-subtle: #8a8a92;
+  --fg-faint: #8a8a92;
   --accent-soft: rgba(59, 110, 246, 0.12);
   --success: #2fbf71;
   --warning: #e8a33d;
@@ -539,7 +539,7 @@ Empty: `No chats yet` + `Start your first chat` link. No `MessageSquare` icons o
 
 ### 8.2 Chat header (56px)
 Left: title (14px semibold, truncates), message count badge (only if > 0).
-Right: `AgentPicker`, artifact toggle, `⋯` (rename / export / delete).
+Right: `AgentPicker`, artifact toggle, `⋯` (rename / export / delete). `⋯` is wired in `ChatHeader`.
 
 ### 8.3 Messages
 - Container `max-w-[45rem] mx-auto`, `space-y-6`, `py-6`.
@@ -652,19 +652,19 @@ npx shadcn@latest add button input textarea badge avatar tooltip dialog sheet \
 ### P1 — Shell — ✅ complete
 1. `AppShell` with `PanelGroup`, persistence.
 2. `Sidebar` single tree + collapse + mobile drawer.
-3. `ConversationItem` with rename/delete + date groups.
+3. `ConversationItem` with rename/delete + date groups. `DELETE /api/chat/delete-conversation/:id` is implemented.
 4. `UserCard` + credits.
 5. `ChatHeader` + `MobileTopBar`.
 
-**Acceptance:** sidebar collapses at 1024px, drawer works at 375px, resize persists after reload, no duplicated markup. — **passed** in Docker at 1440px and 375px: 260px default, 56px collapsed (persists after reload), 320px after resize (persists), drawer closes on select and `Esc`. Rename, local search, new chat, `⌘K`, rail expand, and the mobile billing handoff were verified headlessly.
+**Acceptance:** sidebar collapses at 1024px, drawer works at 375px, resize persists after reload, no duplicated markup. — **passed** in Docker at 1440px and 375px: 260px default, 56px collapsed (persists after reload), 320px after resize (persists), drawer closes on select and `Esc`. Rename, command-palette search, new chat, `⌘K`, rail expand, mobile billing, and conversation delete were verified. P1 regression is 16/16.
 
 **P1 notes**
-- Delete is **not** wired: the chat service has no delete endpoint and only §13.1 is approved. The row menu intentionally shows Rename only; add Delete once a backend endpoint is approved.
-- Search filters the list locally in P1. P4 replaces the trigger with the CommandPalette.
-- `BillingDrawer` moved to `AppShell` so the mobile Sheet's transform cannot clip its fixed overlay.
+- Delete is wired: `DELETE /api/chat/delete-conversation/:id` removes the conversation and its messages; the row menu and chat header confirm before deleting.
+- Search is a `SidebarSearch` trigger for `CommandPalette`; sidebar local filtering is removed.
+- `BillingSheet` is rendered once in `AppShell`; `BillingDrawer` is removed.
 - Sidebar conversation loading keys off `userData.userId` (the `/api/me` session shape, not `_id`), so it loads after login.
 - `ChatArea` only reloads messages when the conversation **id** changes, avoiding a refetch that used to wipe the optimistic first message when the title was set.
-- `SideBar.jsx` and `Nav.jsx` are deleted; `ChatHeader` owns the header.
+- `SideBar.jsx`, `Nav.jsx`, `LoadingAnimation.jsx`, and `BillingDrawer.jsx` are removed; `Sidebar` uses one tree; `ChatHeader` owns the header.
 
 ### P2 — Chat — ✅ complete
 1. `Composer` (auto-grow, Enter/Shift+Enter, drag-drop, paste, chips).
@@ -674,7 +674,7 @@ npx shadcn@latest add button input textarea badge avatar tooltip dialog sheet \
 5. `ThinkingIndicator`, `ScrollToBottom`, skeletons.
 6. `AgentPicker` (7 agents, credits, file routing).
 
-**Acceptance:** send a chat end-to-end, code blocks copy, empty cards work, attach PDF shows `PDF Chat` chip, no console errors. — **frontend passed** in Docker at 1440px and 375px: 69/69 headless checks covering the empty state, all seven agents, starter cards, send/stop/thinking, code and message copy, scroll-to-bottom, lightbox open/close, PDF/image chips, live `Auto → Coding` and `Auto → PDF Chat` tags, persisted agent tags after reload, mobile menu/layout, and zero console errors. The P1 shell regression harness still passes 12/12 against the same build. The live `/api/agent/chat` call was mocked because MongoDB Atlas rejected the current host IP; `agent` persistence passed separately against a temporary local MongoDB using the real `chat.controller.js` and `message.model.js` (`coding` was saved, returned by `getMessages`, and re-read from the document).
+**Acceptance:** send a chat end-to-end, code blocks copy, empty cards work, attach PDF shows `PDF Chat` chip, no console errors. — **frontend passed** in Docker at 1440px and 375px: 69/69 headless checks covering the empty state, all seven agents, starter cards, send/stop/thinking, code and message copy, scroll-to-bottom, lightbox open/close, PDF/image chips, live `Auto → Coding` and `Auto → PDF Chat` tags, persisted agent tags after reload, mobile menu/layout, and zero console errors. The P1 shell regression harness passes 16/16 against the same build. The live `/api/agent/chat` call was mocked because MongoDB Atlas rejected the current host IP; `agent` persistence passed separately against a temporary local MongoDB using the real `chat.controller.js` and `message.model.js` (`coding` was saved, returned by `getMessages`, and re-read from the document).
 
 **P2 notes**
 - `ChatArea` owns `useSendMessage`; `ChatSession` is keyed by conversation id so draft/attachment reset and the abort controller survives the first-message remount.
@@ -690,7 +690,7 @@ npx shadcn@latest add button input textarea badge avatar tooltip dialog sheet \
 3. Lazy `CodeView` (CodeMirror) + `PreviewFrame`.
 4. Mobile sheet.
 
-**Acceptance:** artifact survives conversation switch, preview renders generated HTML, Monaco absent from bundle (`grep -r "monaco" dist`). — **frontend passed** in Docker at 1440px and 375px: 54/54 headless checks covering the 420px default panel, file tabs, CodeMirror content and theme, file copy, CSS tab switching, preview HTML/CSS/JS execution, `sandbox="allow-scripts"`, the 48px rail, header toggle, conversation switching, no-artifact hiding, live artifact open, artifact preservation on a no-artifact follow-up, artifact restoration after reload, collapsed-state restoration, the 345px mobile sheet, no horizontal overflow, no gradients, and zero console errors. The P1 shell regression harness still passes 12/12 and the P2 chat harness 69/69 against the same build. `grep -ri monaco dist` and the Docker image both return nothing.
+**Acceptance:** artifact survives conversation switch, preview renders generated HTML, Monaco absent from bundle (`grep -r "monaco" dist`). — **frontend passed** in Docker at 1440px and 375px: 54/54 headless checks covering the 420px default panel, file tabs, CodeMirror content and theme, file copy, CSS tab switching, preview HTML/CSS/JS execution, `sandbox="allow-scripts"`, the 48px rail, header toggle, conversation switching, no-artifact hiding, live artifact open, artifact preservation on a no-artifact follow-up, artifact restoration after reload, collapsed-state restoration, the 345px mobile sheet, no horizontal overflow, no gradients, and zero console errors. The P1 shell regression harness passes 16/16 and the P2 chat harness 69/69 against the same build. `grep -ri monaco dist` and the Docker image both return nothing.
 
 **P3 notes**
 - The artifact panel is conditionally mounted only while the conversation has artifacts (per the §8.6 state matrix); collapsing keeps it mounted as a 48px rail.
@@ -699,7 +699,7 @@ npx shadcn@latest add button input textarea badge avatar tooltip dialog sheet \
 - `cm.artifact` persists the collapsed state across reloads. The mobile sheet suppresses auto-focus so the first header tooltip does not open when the sheet appears.
 - `Home.jsx` no longer renders the legacy `Artifact`; `Artifact.jsx` and `@monaco-editor/react` are deleted.
 
-### P4 — Overlays
+### P4 — Overlays — ✅ complete
 1. `BillingSheet` + `PlanCard` + `CreditsMeter`.
 2. `LoginDialog`.
 3. `CommandPalette`.
@@ -718,14 +718,14 @@ npx shadcn@latest add button input textarea badge avatar tooltip dialog sheet \
 - `Toaster` `duration={3000}`; `offset={{ bottom: 180, right: 24 }}` so rate-limit/copy toasts do not cover the composer send button; mobile `top-center`; `theme="dark"`; `richColors`.
 - `Home.jsx` renders `<AppShell>` + `<ChatArea>` + `<LoginDialog open={!userData}>`; no inline login. `BillingDrawer` no longer rendered.
 
-### P5 — Polish
+### P5 — Polish — ✅ complete
 1. Keyboard pass + `focus-visible` audit.
 2. 375 / 768 / 1024 / 1440 / 2560 checks.
 3. Reduced motion.
 4. Bundle + Lighthouse check.
 5. Delete dead components (`Nav.jsx`, `LoadingAnimation.jsx` after replacement, `BillingDrawer.jsx`).
 
-**Acceptance:** keyboard-only walkthrough passes, no horizontal scroll, Lighthouse a11y ≥ 95. — **frontend passed** in Docker after P4: `npm run lint`, `npm run build`, Docker rebuild, `grep -ri monaco dist` clean, no gradients, `@media (prefers-reduced-motion: reduce)` present, `focus-visible` rings on controls. P1 16/16, P2 69/69, P3 54/54, P4 62/62, P5 20/20. Breakpoints 375/768/1024/1440/2560 no horizontal scroll. `C:\Users\SANDEEP K G\AppData\Local\Temp\opencode\cm-shots\p5-functional.js` screenshots `p5-*.png`. Lighthouse accessibility score **0.96** (≥ 0.95) on production Docker; only `color-contrast` has a minor subscore, score passes. Main bundle ~1.44 MB / 446 kB gzip; lazy `CodeView` ~622 kB / 218 kB gzip. `BillingDrawer.jsx` deleted; `Nav.jsx`/`LoadingAnimation.jsx` not present. `dist` has no Monaco. No changes committed or pushed.
+**Acceptance:** keyboard-only walkthrough passes, no horizontal scroll, Lighthouse a11y ≥ 95. — **frontend passed** in Docker after P4: `npm run lint`, `npm run build`, Docker rebuild, `grep -ri monaco dist` clean, no gradients, `@media (prefers-reduced-motion: reduce)` present, `focus-visible` rings on controls. P1 16/16, P2 69/69, P3 54/54, P4 62/62, P5 20/20, remaining-feature P5 18/18. Breakpoints 375/768/1024/1440/2560 no horizontal scroll. `C:\Users\SANDEEP K G\AppData\Local\Temp\opencode\cm-shots\p5-functional.js` screenshots `p5-*.png`. Lighthouse accessibility score **1.0** on production Docker; `color-contrast` passes. Main bundle ~1.45 MB / 447 kB gzip; lazy `CodeView` ~622 kB / 218 kB gzip. `BillingDrawer.jsx` deleted; `Nav.jsx`/`LoadingAnimation.jsx` not present. `dist` has no Monaco. Local feature commits are present; nothing has been pushed.
 
 ---
 
@@ -835,10 +835,10 @@ Documented so nobody "fixes" working code:
 | `COST` missing `auto` | Correct. `auto` never reaches `deductCredits`; each agent passes its own id. |
 | Double charge in `coding.agent.js` (lines 95 + 140) | Correct. Mutually exclusive branches; line 97 returns before line 140. |
 
-### 13.3 Recommended, not approved — decide later
-- **Error propagation:** agents swallow failures and return `aiResponse: "failed to generate chat"` with HTTP 200, so the UI cannot distinguish success from failure. Add `failed: true` to agent returns and map it in the controller. Needed for the §9 error state.
-- **Credit pre-check:** `deductCredits` runs *after* the LLM call and swallows failures, so a user with 0 credits still gets answers. Move the check before invocation.
-- **`imageAnalyzer` charge label:** deducts as `"vision"`; correct cost (10) but confusing in logs.
+### 13.3 Implemented error propagation, credit pre-check, and clearer `imageAnalyzer` labeling
+- **Error propagation:** agents return `failed: true`; the controller maps `failed`, `agent`, `answer`, `images`, and `artifacts`; failed assistant messages are not persisted; `useSendMessage` surfaces a toast and does not add an assistant message.
+- **Credit pre-check:** `checkCredits` runs before LLM invocation; auth `/internal/credits` validates `credits >= requiredCredits`; `deductCredits` no longer swallows failures.
+- **`imageAnalyzer` charge label:** `imageAnalyzer` now uses `"imageAnalyzer"` for credit check and `deductCredits`, distinct from `vision`.
 
 ---
 
@@ -852,7 +852,7 @@ Documented so nobody "fixes" working code:
 - `aria-busy` on the composer while sending.
 - Images have `alt`; decorative icons `aria-hidden`.
 - Contrast: body text `#EDEDEF` on `#0A0A0B` ≈ 16:1; muted `#A1A1A6` ≈ 8:1; never use `fg-faint` for text below 11px.
-- Keyboard map: `⌘K` palette, `⌘B` sidebar, `⌘J` artifact, `Enter` send, `Shift+Enter` newline, `Esc` close layer.
+- Keyboard map: `⌘K` palette, `⌘B` sidebar, `⌘J` artifact, `Enter` send, `Shift+Enter` newline, `Esc` close layer. `Cmd/Ctrl+B` and `Cmd/Ctrl+J` are wired in `AppShell`.
 - `prefers-reduced-motion` disables pulses and panel transitions.
 
 ---
@@ -1015,7 +1015,7 @@ grep -r "react-syntax-highlighter" frontend/dist # expect nothing
 
 **Hard rules**
 
-1. No `git commit` unless the user explicitly asks. The working tree is the deliverable during implementation.
+1. No `git commit` unless the user explicitly asks. Local feature commits are allowed when requested.
 2. No `git push` to GitHub, Azure, or any remote. Not once, until told.
 3. No tags, releases, or workflow dispatches. `deploy.yml` is push-triggered on `main`; we stay off it.
 4. No edits to `.github/workflows/*`.
@@ -1058,7 +1058,7 @@ Each commit must build and lint on its own. No commit may mix a refactor with a 
 | nginx boots before gateway is resolvable | Gateway healthcheck + `depends_on: service_healthy` |
 | Local Docker can't reach Mongo/Qdrant/Upstash | Keep the compose network non-internal; these are cloud services |
 
-Commit strategy: one commit per phase, prefixed `feat(ui): p0 …` through `p5 …`. No mixed refactor commits.
+Commit strategy: local commits split by feature with conventional messages; no pushes. No mixed mega-commit.
 
 ---
 
@@ -1067,7 +1067,7 @@ Commit strategy: one commit per phase, prefixed `feat(ui): p0 …` through `p5 �
 - Streaming / SSE responses.
 - Light mode (tokens ready, UI not built).
 - Email/password or magic-link auth.
-- New backend features beyond §13.1.
+- New backend features beyond §13.1, conversation delete, §13.3, `/internal/credits`, and accessibility cleanup.
 - Marketing site / landing page.
 - Unit or E2E tests beyond build + lint.
 - i18n / RTL.
